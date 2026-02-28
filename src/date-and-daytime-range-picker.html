@@ -101,6 +101,23 @@
     .thumb:focus-visible { outline: var(--focus); outline-offset: 4px; }
     .thumb.start { z-index: 4; } .thumb.end { z-index: 4; }
 
+    /* Improve touch dragging on the track */
+    .track { touch-action: none; }
+
+    /* Center thumb sits above start/end */
+    .thumb.center { z-index: 3; }
+
+    /* Optional: make the center thumb slightly different to hint "move window" */
+    .thumb.center::-webkit-slider-thumb,
+    .thumb.center::-moz-range-thumb {
+      /* same base as other thumbs; tweak ring to hint distinct role */
+      border: 2px solid white;
+      box-shadow:
+        0 0 0 1px var(--border),
+        0 0 0 4px color-mix(in oklab, var(--accent) 18%, transparent),
+        0 2px 4px rgba(0,0,0,.15);
+    }
+
     @media (max-width: 700px) { .row { grid-template-columns: 1fr; } .inputs { grid-template-columns: 1fr; } }
   </style>
 
@@ -134,6 +151,7 @@
         </div>
         <input class="thumb start" id="dateThumbStart" type="range" />
         <input class="thumb end" id="dateThumbEnd" type="range" />
+        <input class="thumb center" id="dateThumbCenter" type="range" aria-label="Move date range" />
       </div>
     </div>
   </div>
@@ -155,6 +173,7 @@
         </div>
         <input class="thumb start" id="timeThumbStart" type="range" />
         <input class="thumb end" id="timeThumbEnd" type="range" />
+        <input class="thumb center" id="timeThumbCenter" type="range" aria-label="Move time range" />
       </div>
     </div>
   </div>

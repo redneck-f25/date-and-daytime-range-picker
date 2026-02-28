@@ -61,6 +61,7 @@ class DateAndDaytimeRangePicker extends HTMLElement {
       dateEnd: this.#root.getElementById('dateEnd'),
       dateThumbStart: this.#root.getElementById('dateThumbStart'),
       dateThumbEnd: this.#root.getElementById('dateThumbEnd'),
+      dateThumbCenter: this.#root.getElementById('dateThumbCenter'),
       dateFill: this.#root.getElementById('dateFill'),
       dateTrack: this.#root.getElementById('dateTrack'),
       dateTicks: this.#root.getElementById('dateTicks'),
@@ -70,6 +71,7 @@ class DateAndDaytimeRangePicker extends HTMLElement {
       timeEnd: this.#root.getElementById('timeEnd'),
       timeThumbStart: this.#root.getElementById('timeThumbStart'),
       timeThumbEnd: this.#root.getElementById('timeThumbEnd'),
+      timeThumbCenter: this.#root.getElementById('timeThumbCenter'),
       timeFillA: this.#root.getElementById('timeFillA'),
       timeFillB: this.#root.getElementById('timeFillB'),
       timeTrack: this.#root.getElementById('timeTrack'),
@@ -329,6 +331,35 @@ class DateAndDaytimeRangePicker extends HTMLElement {
     E.dateThumbStart.addEventListener('change', () => this.#emit('change'));
     E.dateThumbEnd.addEventListener('change', () => this.#emit('change'));
 
+    // --- Center thumb: DATE ---
+    // Dragging the center shifts both start and end while preserving width.
+    E.dateThumbCenter.addEventListener('input', () => {
+      const S = this.#state;
+      // current center (midpoint)
+      const prevCenter = (S.dateStart + S.dateEnd) / 2;
+
+      const newCenter = Math.round(+this.#els.dateThumbCenter.value);
+      let shift = newCenter - prevCenter;
+
+      // snap shift to day step
+      shift = Math.round(shift / S.dateStepDays) * S.dateStepDays;
+
+      // clamp shift so selection stays within bounds
+      const minShift = S.dateMin - S.dateStart;
+      const maxShift = S.dateMax - S.dateEnd;
+      const minShiftStep = Math.ceil(minShift / S.dateStepDays) * S.dateStepDays;
+      const maxShiftStep = Math.floor(maxShift / S.dateStepDays) * S.dateStepDays;
+      shift = Math.max(minShiftStep, Math.min(maxShiftStep, shift));
+
+      S.dateStart += shift;
+      S.dateEnd   += shift;
+
+      // Re-render and emit live update
+      this.#renderDate();
+      this.#emit('input');
+    });
+    E.dateThumbCenter.addEventListener('change', () => this.#emit('change'));
+
     // Time inputs <-> slider
     const parseTime = (val) => {
       if (!val || !/^\d{2}:\d{2}(:\d{2})?$/.test(val)) return null;
@@ -353,6 +384,38 @@ class DateAndDaytimeRangePicker extends HTMLElement {
     E.timeThumbEnd.addEventListener('input', onTimeThumb);
     E.timeThumbStart.addEventListener('change', () => this.#emit('change'));
     E.timeThumbEnd.addEventListener('change', () => this.#emit('change'));
+
+    // --- Center thumb: TIME ---
+    // Circular center drag with wrap and step snap.
+    E.timeThumbCenter.addEventListener('input', () => {
+      const S = this.#state;
+      const mod = 1440;
+
+      // current center on a circle
+      const width = (S.timeEnd >= S.timeStart) ? (S.timeEnd - S.timeStart)
+                                              : (mod - S.timeStart + S.timeEnd);
+      let prevCenter = (S.timeStart + width / 2) % mod;
+
+      const newCenter = Math.round(+this.#els.timeThumbCenter.value) % mod;
+
+      // compute shortest signed delta on circle
+      let shift = newCenter - prevCenter;
+      if (shift >  720) shift -= mod;
+      if (shift < -720) shift += mod;
+
+      // snap to time step
+      shift = Math.round(shift / S.timeStep) * S.timeStep;
+
+      const wrap = (v) => ((v % mod) + mod) % mod;
+
+      S.timeStart = wrap(S.timeStart + shift);
+      S.timeEnd   = wrap(S.timeEnd   + shift);
+
+      // Re-render and emit live update
+      this.#renderTime();
+      this.#emit('input');
+    });
+    E.timeThumbCenter.addEventListener('change', () => this.#emit('change'));
   }
 
   /* ---------- Track drag + recenter-on-click ---------- */
@@ -484,6 +547,14 @@ class DateAndDaytimeRangePicker extends HTMLElement {
     E.dateThumbStart.value = String(S.dateStart);
     E.dateThumbEnd.value = String(S.dateEnd);
 
+    // Center thumb mirrors track bounds/step and sits at the midpoint
+    E.dateThumbCenter.min  = String(S.dateMin);
+    E.dateThumbCenter.max  = String(S.dateMax);
+    E.dateThumbCenter.step = String(S.dateStepDays);
+
+    const mid = Math.round((S.dateStart + S.dateEnd) / 2);
+    this.#els.dateThumbCenter.value = String(mid);
+
     E.dateStart.value = this.#fmtDateISO(this.#idxToDate(S.dateStart));
     E.dateEnd.value = this.#fmtDateISO(this.#idxToDate(S.dateEnd));
 
@@ -503,6 +574,17 @@ class DateAndDaytimeRangePicker extends HTMLElement {
 
     E.timeThumbStart.value = String(S.timeStart);
     E.timeThumbEnd.value   = String(S.timeEnd);
+
+    // Center thumb mirrors time bounds/step and sits at circular midpoint
+    this.#els.timeThumbCenter.min  = String(S.timeMin);
+    this.#els.timeThumbCenter.max  = String(S.timeMax);
+    this.#els.timeThumbCenter.step = String(S.timeStep);
+
+    // circular midpoint
+    const mod = 1440;
+    const width = (S.timeEnd >= S.timeStart) ? (S.timeEnd - S.timeStart) : (mod - S.timeStart + S.timeEnd);
+    const c = (S.timeStart + width / 2) % mod;
+    this.#els.timeThumbCenter.value = String(Math.round(c));
 
     E.timeStart.step = String(step * 60);
     E.timeEnd.step   = String(step * 60);

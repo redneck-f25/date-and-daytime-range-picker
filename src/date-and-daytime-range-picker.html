@@ -90,7 +90,15 @@
       -webkit-appearance: none; appearance: none; pointer-events: auto;
       width: var(--handle-size); height: var(--handle-size); border-radius: 50%; border: 2px solid white;
       box-shadow: 0 0 0 1px var(--border), 0 2px 4px rgba(0,0,0,.15);
-      background: radial-gradient(circle at 40% 35%, white 0 30%, color-mix(in oklab,var(--accent) 65%, white) 30% 100%);
+    }
+    .thumb.start::-webkit-slider-thumb {
+      background: radial-gradient(circle at 70% 50%, white 0 30%, color-mix(in oklab,var(--accent) 65%, white) 30% 100%);
+    }
+    .thumb.end::-webkit-slider-thumb {
+      background: radial-gradient(circle at 30% 50%, white 0 30%, color-mix(in oklab,var(--accent) 65%, white) 30% 100%);
+    }
+    .thumb.center::-webkit-slider-thumb {
+      background: radial-gradient(circle at 50% 70%, white 0 30%, color-mix(in oklab,var(--accent) 65%, white) 30% 100%);
     }
     .thumb::-moz-range-thumb {
       pointer-events: auto; width: var(--handle-size); height: var(--handle-size); border-radius: 50%; border: 2px solid white;

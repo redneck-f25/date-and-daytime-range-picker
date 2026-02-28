@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Date & Daytime Range Picker – Demo</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root {
+      --bg: Canvas;
+      --panel: color-mix(in oklab, Canvas 92%, #6b7280);
+      --text: CanvasText;
+      --muted: color-mix(in oklab, currentColor 50%, transparent);
+      --border: color-mix(in oklab, Canvas 85%, #6b7280);
+
+      --brand: #2563eb;
+      --brand-2: #60a5fa;
+
+      --radius: 12px;
+      --gap: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.06);
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;                        /* pure black */
+      --panel: #111111;                     /* near-black panels */
+      --text: #ffffff;                      /* pure white text */
+      --muted: #aaaaaa;                     /* lighter gray for muted text */
+      --border: #333333;                    /* subtle dark borders */
+
+      --brand: #4f8cff;                     /* stronger blue for dark mode */
+      --brand-2: #83aaff;
+
+      --shadow: 0 2px 6px rgba(0,0,0,0.6);  /* deeper shadow for dark */
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+      /* Prevent horizontal flicker when scrollbars appear */
+      overflow-y: scroll;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .app-header {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in oklab, var(--bg) 88%, transparent);
+      backdrop-filter: blur(6px);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700;
+    }
+    .badge {
+      display: inline-block;
+      font: 11px/1 var(--mono);
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: color-mix(in oklab, var(--brand) 15%, transparent);
+      color: color-mix(in oklab, var(--brand) 95%, black);
+      border: 1px solid color-mix(in oklab, var(--brand) 35%, transparent);
+    }
+
+    /* Layout */
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card > .card-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card > .card-body { padding: 12px 14px; }
+    .card h2 { font-size: 15px; margin: 0; }
+    .muted { color: var(--muted); }
+
+    .controls-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .row {
+      display: grid;
+      gap: 6px;
+    }
+    .row.inline {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label { font-weight: 600; color: var(--muted); }
+    input[type="date"], input[type="time"], input[type="text"], select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: Canvas;
+      color: CanvasText;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--brand-2);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 20%, transparent);
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: Canvas; color: CanvasText;
+      border-radius: 10px; padding: 7px 10px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--brand-2); }
+    .btn.primary {
+      background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 80%, white), var(--brand));
+      color: white; border-color: color-mix(in oklab, var(--brand) 60%, black);
+    }
+    .btn.small { padding: 5px 8px; font-size: 12px; }
+
+    /* Preview grid */
+    .preview {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 16px;
+      /* Make cards align to the same height for a clean look */
+      align-items: stretch;
+    }
+    @media (max-width: 1160px) {
+      .preview { grid-template-columns: 1fr; }
+    }
+
+    .values pre, .log pre {
+      margin: 0; white-space: pre-wrap; word-break: break-word;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    .values .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 560px) {
+      .values .grid { grid-template-columns: 1fr; }
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .spacer { flex: 1 1 auto; }
+    .kpi {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .kpi .box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--panel);   /* consistent surface for both themes */
+      color: var(--text);         /* ensure high-contrast text */
+    }
+    .kpi .box .tt { font-size: 11px; color: var(--muted); }
+    .kpi .box .vv { font-family: var(--mono); font-weight: 700; margin-top: 4px; }
+
+    /* LIVE card: make the log fill remaining space (CSS-only solution) */
+    .card.live {
+      display: flex;
+      flex-direction: column;
+    }
+    .card.live .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0; /* critical so children can shrink */
+    }
+    .card.live .values {
+      flex: 0 0 auto;
+    }
+    .card.live .log {
+      flex: 1 1 auto;       /* fills remaining space */
+      min-height: 0;        /* critical with flex children */
+      overflow: auto;       /* independent scroll area */
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .card.live .log pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding-right: 8px;   /* room for scrollbar gutter */
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .warn { color: #eab308; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span style="width:10px;height:10px;border-radius:999px;background:var(--brand);display:inline-block"></span>
+      <div>Date & Daytime Range Picker</div>
+      <span class="badge">Web Component</span>
+    </div>
+    <div class="toolbar">
+      <button id="themeLight" class="btn small">Light</button>
+      <button id="themeDark" class="btn small">Dark</button>
+      <span class="muted">Theme</span>
+    </div>
+  </header>
+
+  <main class="app">
+    <!-- Sidebar Controls -->
+    <aside class="card">
+      <div class="card-header">
+        <h2>Demo Controls</h2>
+        <span class="muted">outside the component</span>
+      </div>
+      <div class="card-body">
+        <div class="controls-grid">
+          <!-- External bounds -->
+          <div class="row">
+            <label for="extMin">Bounds</label>
+            <div class="row inline">
+              <input id="extMin" type="date" value="2025-01-01" />
+              <input id="extMax" type="date" value="2026-12-31" />
+            </div>
+            <div class="btn-row">
+              <button class="btn small" data-bounds="thisYear">This Year</button>
+              <button class="btn small" data-bounds="last90">Last 90d</button>
+              <button class="btn small" data-bounds="last30">Last 30d</button>
+              <button class="btn small" data-bounds="fy">Fiscal Year (demo)</button>
+            </div>
+          </div>
+
+          <!-- Presets -->
+          <div class="row">
+            <label>Presets</label>
+            <div class="btn-row">
+              <button class="btn small" data-preset="month">This Month</button>
+              <button class="btn small" data-preset="quarter">This Quarter</button>
+              <button class="btn small" data-preset="week">This Week</button>
+              <button class="btn small" data-preset="today">Today</button>
+              <button class="btn small" data-preset="yesterday">Yesterday</button>
+            </div>
+            <div class="btn-row">
+              <button class="btn small" data-time="business">09:00–17:00</button>
+              <button class="btn small" data-time="night">22:00–06:00</button>
+              <button class="btn small" data-time="morning">06:00–12:00</button>
+              <button class="btn small" data-time="evening">18:00–23:00</button>
+            </div>
+          </div>
+
+          <!-- Time zone shortcuts -->
+          <div class="row">
+            <label>Time Zone Shortcuts</label>
+            <div class="btn-row">
+              <button class="btn small" data-tz="UTC">UTC</button>
+              <button class="btn small" data-tz="Europe/Berlin">Europe/Berlin</button>
+              <button class="btn small" data-tz="America/New_York">America/New_York</button>
+              <button class="btn small" data-tz="Asia/Tokyo">Asia/Tokyo</button>
+            </div>
+            <div class="muted" style="font-size:12px">
+              These set the component’s TZ input instantly.
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div class="row">
+            <label>Status</label>
+            <div class="kpi">
+              <div class="box">
+                <div class="tt">Midnight Wrap</div>
+                <div class="vv" id="kpiWrap">—</div>
+              </div>
+              <div class="box">
+                <div class="tt">Minutes (start→end)</div>
+                <div class="vv" id="kpiMinutes">—</div>
+              </div>
+              <div class="box">
+                <div class="tt">TZ Offset</div>
+                <div class="vv" id="kpiOffset">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>Notes</label>
+            <div class="muted" style="font-size:12px">
+              Clicking the track recenters the selection. Dragging the track moves both thumbs while preserving the range width.
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Preview -->
+    <section class="preview">
+      <!-- Component Panel -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Component</h2>
+          <div class="toolbar">
+            <span class="muted">Attributes:</span>
+            <code class="muted" style="font-family:var(--mono);font-size:12px">time-step="15" date-step-days="1"</code>
+          </div>
+        </div>
+        <div class="card-body">
+          <date-and-daytime-range-picker
+            id="picker"
+            min-date="2025-01-01"
+            max-date="2026-12-31"
+            time-step="15"
+            date-step-days="1"
+            default-tz="Europe/Berlin"
+          ></date-and-daytime-range-picker>
+        </div>
+      </div>
+
+      <!-- Live Values + Log -->
+      <div class="card live">
+        <div class="card-header">
+          <h2>Live Values</h2>
+          <div class="toolbar">
+            <button id="copyValues" class="btn small">Copy</button>
+            <div class="spacer"></div>
+            <span class="muted">Events:</span>
+            <button id="clearLog" class="btn small">Clear Log</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="values">
+            <div class="grid">
+              <div>
+                <label>Split ISO</label>
+                <pre id="splitIso">—</pre>
+              </div>
+              <div>
+                <label>Combined ISO with Offset</label>
+                <pre id="combinedIso">—</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- This grows to fill the remaining height in the card (CSS flex) -->
+          <div class="log">
+            <label>Event Log</label>
+            <pre id="eventLog">—</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Import component -->
+  <script type="module" src="../src/date-and-daytime-range-picker.js"></script>
+
+  <!-- Demo wiring -->
+  <script type="module">
+    const $ = (sel) => document.querySelector(sel);
+    const picker = $('#picker');
+
+    const splitIsoEl = $('#splitIso');
+    const combinedIsoEl = $('#combinedIso');
+    const kpiWrap = $('#kpiWrap');
+    const kpiMinutes = $('#kpiMinutes');
+    const kpiOffset = $('#kpiOffset');
+    const logEl = $('#eventLog');
+
+    const extMin = $('#extMin');
+    const extMax = $('#extMax');
+
+    function fmtMinutes(min) {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+
+    function render(detail) {
+      // Pull current state via public API
+      const d = picker.dateRange;
+      const t = picker.timeRange;
+      const tz = picker.timeZone;
+
+      // Split ISO
+      const ds = `${d.start.getFullYear()}-${String(d.start.getMonth()+1).padStart(2,'0')}-${String(d.start.getDate()).padStart(2,'0')}`;
+      const de = `${d.end.getFullYear()}-${String(d.end.getMonth()+1).padStart(2,'0')}-${String(d.end.getDate()).padStart(2,'0')}`;
+
+      splitIsoEl.textContent =
+`dateStart: ${ds}
+dateEnd  : ${de}
+timeStart: ${fmtMinutes(t.startMinutes)}:00
+timeEnd  : ${fmtMinutes(t.endMinutes)}:00
+timeZone : ${tz}
+wrap     : ${t.crossesMidnight}`;
+
+      // Combined ISO from last event detail if available
+      if (detail?.rangeStartDateTimeISO && detail?.rangeEndDateTimeISO) {
+        combinedIsoEl.textContent =
+`start: ${detail.rangeStartDateTimeISO}
+end  : ${detail.rangeEndDateTimeISO}`;
+        // Extract offset like +01:00 for KPI
+        kpiOffset.textContent = detail.rangeStartDateTimeISO.slice(-6);
+      }
+
+      // KPIs
+      kpiWrap.textContent = t.crossesMidnight ? 'Yes' : 'No';
+      kpiMinutes.textContent = `${t.startMinutes} → ${t.endMinutes}`;
+    }
+
+    // Newest-first event log
+    function logEvent(type, detail) {
+      const ts = new Date().toLocaleTimeString();
+      const message = `${ts}  ${type.toUpperCase()}  ${JSON.stringify(detail)}\n`;
+      if (logEl.textContent === '—') {
+        logEl.textContent = message;
+      } else {
+        logEl.insertAdjacentText('afterbegin', message);
+      }
+    }
+
+    // Wire component events
+    picker.addEventListener('input', (e) => { render(e.detail); logEvent('input', e.detail); });
+    picker.addEventListener('change', (e) => { render(e.detail); logEvent('change', e.detail); });
+
+    // Initial render (let component finish initial state)
+    queueMicrotask(() => render());
+
+    // Theme toggle
+    $('#themeLight').addEventListener('click', () => document.documentElement.setAttribute('data-theme', 'light'));
+    $('#themeDark').addEventListener('click', () => document.documentElement.setAttribute('data-theme', 'dark'));
+
+    // External bounds
+    function applyBounds() {
+      const min = extMin.value;
+      const max = extMax.value;
+      if (min && max && min > max) {
+        alert('Min date must be ≤ Max date'); return;
+      }
+      if (min) picker.setAttribute('min-date', min);
+      if (max) picker.setAttribute('max-date', max);
+    }
+    extMin.addEventListener('input', applyBounds);
+    extMax.addEventListener('input', applyBounds);
+
+    // Bounds presets
+    document.querySelectorAll('[data-bounds]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const now = new Date();
+        const todayIso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        let min, max;
+
+        switch (btn.dataset.bounds) {
+          case 'thisYear': {
+            const y = now.getFullYear();
+            min = `${y}-01-01`; max = `${y}-12-31`;
+            break;
+          }
+          case 'last90': {
+            const d1 = new Date(now); d1.setDate(d1.getDate() - 90);
+            min = todayIso(d1); max = todayIso(now);
+            break;
+          }
+          case 'last30': {
+            const d1 = new Date(now); d1.setDate(d1.getDate() - 30);
+            min = todayIso(d1); max = todayIso(now);
+            break;
+          }
+          case 'fy': {
+            // Example fiscal: Apr 1 → Mar 31 of next year
+            const y0 = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+            min = `${y0}-04-01`; max = `${y0 + 1}-03-31`;
+            break;
+          }
+        }
+        extMin.value = min; extMax.value = max; applyBounds();
+      });
+    });
+
+    // Date presets
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.preset;
+        const setRange = (start, end) => picker.dateRange = { start, end };
+        const today = new Date();
+        const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const startOfWeek = (d) => {
+          const dd = new Date(d); const day = dd.getDay() || 7; // Mon=1..Sun=7
+          dd.setDate(dd.getDate() - (day - 1));
+          return dd;
+        };
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth()+1, 0);
+        const q = Math.floor(today.getMonth()/3);
+        const startOfQuarter = new Date(today.getFullYear(), q*3, 1);
+        const endOfQuarter = new Date(today.getFullYear(), q*3 + 3, 0);
+
+        switch (p) {
+          case 'today':
+            setRange(iso(today), iso(today)); break;
+          case 'yesterday': {
+            const y = new Date(today); y.setDate(y.getDate()-1);
+            setRange(iso(y), iso(y)); break;
+          }
+          case 'week': {
+            const s = startOfWeek(today);
+            const e = new Date(s); e.setDate(e.getDate()+6);
+            setRange(iso(s), iso(e)); break;
+          }
+          case 'month':
+            setRange(iso(startOfMonth), iso(endOfMonth)); break;
+          case 'quarter':
+            setRange(iso(startOfQuarter), iso(endOfQuarter)); break;
+        }
+      });
+    });
+
+    // Time presets
+    document.querySelectorAll('[data-time]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const setMinutes = (h,m) => h*60 + m;
+        const kind = btn.dataset.time;
+        switch (kind) {
+          case 'business':
+            picker.timeRange = { startMinutes: setMinutes(9,0), endMinutes: setMinutes(17,0) }; break;
+          case 'night':
+            picker.timeRange = { startMinutes: setMinutes(22,0), endMinutes: setMinutes(6,0) }; break;
+          case 'morning':
+            picker.timeRange = { startMinutes: setMinutes(6,0), endMinutes: setMinutes(12,0) }; break;
+          case 'evening':
+            picker.timeRange = { startMinutes: setMinutes(18,0), endMinutes: setMinutes(23,0) }; break;
+        }
+      });
+    });
+
+    // TZ shortcuts
+    document.querySelectorAll('[data-tz]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        try {
+          picker.timeZone = btn.dataset.tz; // public setter; component handles rendering
+        } catch (e) {
+          console.warn('Failed to set time zone', e);
+        }
+      });
+    });
+
+    // Copy values
+    $('#copyValues').addEventListener('click', async () => {
+      const blob = [
+        '--- Split ISO ---',
+        splitIsoEl.textContent,
+        '',
+        '--- Combined ISO (with offset) ---',
+        combinedIsoEl.textContent
+      ].join('\n');
+      try {
+        await navigator.clipboard.writeText(blob);
+        const old = $('#copyValues').textContent;
+        $('#copyValues').textContent = 'Copied!';
+        setTimeout(() => $('#copyValues').textContent = old, 1200);
+      } catch {
+        alert('Clipboard copy failed. Select text and copy manually.');
+      }
+    });
+
+    // Clear log
+    $('#clearLog').addEventListener('click', () => logEl.textContent = '—');
+  </script>
+</body>
+</html>

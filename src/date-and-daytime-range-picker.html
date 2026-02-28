@@ -1,0 +1,161 @@
+<!-- date-and-daytime-range-picker.html -->
+<template id="date-and-daytime-range-picker-template">
+  <style>
+    :host {
+      --accent: #2563eb;
+      --accent-2: #60a5fa;
+      --track: color-mix(in oklab, Canvas 85%, #6b7280);
+      --fill: var(--accent);
+      --border: color-mix(in oklab, Canvas 85%, #6b7280);
+      --radius: 10px;
+      --gap: 0.75rem;
+      --handle-size: 16px;
+      --track-h: 6px;
+      --focus: 2px solid color-mix(in oklab, var(--accent) 60%, white);
+      --label-w: 10rem;
+
+      /* ticks */
+      --tick-color: color-mix(in oklab, currentColor 60%, transparent);
+      --tick-strong-color: color-mix(in oklab, currentColor 80%, transparent);
+      --tick-label-color: color-mix(in oklab, currentColor 80%, transparent);
+      --tick-h: 8px;
+      --tick-h-strong: 12px;
+      --tick-font-size: 10px;
+      --tick-label-offset: 10px;
+
+      display: block;
+      color: inherit;
+    }
+
+    .group { display: grid; gap: var(--gap); margin-bottom: 1rem; }
+
+    .row {
+      display: grid; grid-template-columns: var(--label-w) 1fr 1fr;
+      gap: .5rem .5rem; align-items: center;
+    }
+    .row .label { font-weight: 600; color: color-mix(in oklab, currentColor 70%, transparent); }
+
+    .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+
+    input[type="date"], input[type="time"], input[type="text"] {
+      width: 100%; box-sizing: border-box; padding: .45rem .55rem;
+      border: 1px solid var(--border); border-radius: 8px; background: Canvas; color: CanvasText; outline: none;
+    }
+    input[type="date"]:focus, input[type="time"]:focus, input[type="text"]:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+    }
+    input.invalid { border-color: #ef4444; box-shadow: 0 0 0 3px color-mix(in oklab, #ef4444 25%, transparent); }
+
+    .range {
+      position: relative; height: calc(var(--handle-size) + 1.25rem);
+      display: grid; align-items: start;
+    }
+
+    .track {
+      position: relative; height: var(--track-h); border-radius: var(--radius);
+      background: var(--track); overflow: visible; cursor: grab;
+      margin-top: calc((var(--handle-size) - var(--track-h)) / 2);
+    }
+    .track.dragging { cursor: grabbing; }
+
+    .fill {
+      position: absolute; inset: 0; height: 100%;
+      background: linear-gradient(90deg, var(--fill), color-mix(in oklab, var(--fill) 82%, white));
+      border-radius: var(--radius);
+      transform: translateX(var(--fill-left, 0)) scaleX(var(--fill-scale, 1));
+      transform-origin: 0 50%;
+      pointer-events: none; z-index: 1;
+    }
+    .fill.hidden { display: none; }
+
+    .ticks, .tick-labels { position: absolute; inset: 0; pointer-events: none; }
+    .ticks { z-index: 2; }
+    .tick-labels { z-index: 3; font-size: var(--tick-font-size); color: var(--tick-label-color); }
+
+    .tick {
+      position: absolute; bottom: 100%; transform: translateX(-50%);
+      width: 0; border-left: 1px solid var(--tick-color); height: var(--tick-h);
+    }
+    .tick.strong { border-left-color: var(--tick-strong-color); height: var(--tick-h-strong); }
+    .tick-label { position: absolute; top: calc(100% + var(--tick-label-offset)); transform: translateX(-50%); white-space: nowrap; }
+
+    .thumb {
+      position: absolute; inset: 0; background: none; pointer-events: none;
+      -webkit-appearance: none; appearance: none; height: var(--handle-size);
+    }
+    .thumb::-webkit-slider-runnable-track { height: var(--track-h); background: transparent; }
+    .thumb::-moz-range-track { height: var(--track-h); background: transparent; }
+    .thumb::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none; pointer-events: auto;
+      width: var(--handle-size); height: var(--handle-size); border-radius: 50%; border: 2px solid white;
+      box-shadow: 0 0 0 1px var(--border), 0 2px 4px rgba(0,0,0,.15);
+      background: radial-gradient(circle at 40% 35%, white 0 30%, color-mix(in oklab,var(--accent) 65%, white) 30% 100%);
+    }
+    .thumb::-moz-range-thumb {
+      pointer-events: auto; width: var(--handle-size); height: var(--handle-size); border-radius: 50%; border: 2px solid white;
+      box-shadow: 0 0 0 1px var(--border), 0 2px 4px rgba(0,0,0,.15);
+      background: radial-gradient(circle at 40% 35%, white 0 30%, color-mix(in oklab,var(--accent) 65%, white) 30% 100%);
+    }
+    .thumb:focus { outline: none; }
+    .thumb:focus-visible { outline: var(--focus); outline-offset: 4px; }
+    .thumb.start { z-index: 4; } .thumb.end { z-index: 4; }
+
+    @media (max-width: 700px) { .row { grid-template-columns: 1fr; } .inputs { grid-template-columns: 1fr; } }
+  </style>
+
+  <!-- Time Zone (datalist) -->
+  <div class="group" role="group" aria-label="Time Zone">
+    <div class="row">
+      <div class="label">Time zone</div>
+      <div class="inputs">
+        <input id="tzInput" type="text" list="timezones" placeholder="e.g., Europe/Berlin" autocomplete="off" />
+        <datalist id="timezones"></datalist>
+      </div>
+      <div>
+        <input id="tzOffsetPreview" type="text" readonly aria-label="Offset preview" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Date Range -->
+  <div class="group" role="group" aria-label="Date Range">
+    <div class="row">
+      <div class="label">Date range</div>
+      <div class="inputs">
+        <input part="date-start" type="date" id="dateStart" />
+        <input part="date-end" type="date" id="dateEnd" />
+      </div>
+      <div class="range">
+        <div class="track" id="dateTrack">
+          <div class="fill" id="dateFill"></div>
+          <div class="ticks" id="dateTicks"></div>
+          <div class="tick-labels" id="dateTickLabels"></div>
+        </div>
+        <input class="thumb start" id="dateThumbStart" type="range" />
+        <input class="thumb end" id="dateThumbEnd" type="range" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Time Range -->
+  <div class="group" role="group" aria-label="Time of Day Range">
+    <div class="row">
+      <div class="label">Time range</div>
+      <div class="inputs">
+        <input part="time-start" type="time" id="timeStart" />
+        <input part="time-end" type="time" id="timeEnd" />
+      </div>
+      <div class="range">
+        <div class="track" id="timeTrack">
+          <div class="fill" id="timeFillA"></div>
+          <div class="fill hidden" id="timeFillB"></div>
+          <div class="ticks" id="timeTicks"></div>
+          <div class="tick-labels" id="timeTickLabels"></div>
+        </div>
+        <input class="thumb start" id="timeThumbStart" type="range" />
+        <input class="thumb end" id="timeThumbEnd" type="range" />
+      </div>
+    </div>
+  </div>
+</template>

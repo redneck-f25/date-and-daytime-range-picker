@@ -105,7 +105,7 @@
     .track { touch-action: none; }
 
     /* Center thumb sits above start/end */
-    .thumb.center { z-index: 3; }
+    .thumb.center { z-index: 3; top: calc(-1 * var(--handle-size)); }
 
     /* Optional: make the center thumb slightly different to hint "move window" */
     .thumb.center::-webkit-slider-thumb,
